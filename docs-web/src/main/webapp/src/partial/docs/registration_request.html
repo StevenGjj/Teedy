@@ -1,0 +1,44 @@
+﻿<div class="modal-header">
+  <h3 class="modal-title">{{ '请求注册' | translate }}</h3>
+</div>
+<div class="modal-body">
+  <form class="form-horizontal">
+    <div class="form-group">
+      <label class="col-sm-3 control-label">{{ '用户名' | translate }}</label>
+      <div class="col-sm-9">
+        <input type="text" class="form-control" ng-model="registrationData.username"
+               placeholder="{{ '用户名' | translate }}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-3 control-label">{{ '密码' | translate }}</label>
+      <div class="col-sm-9">
+        <input type="password" class="form-control" ng-model="registrationData.password"
+               placeholder="{{ '密码' | translate }}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="col-sm-3 control-label">{{ '邮箱' | translate }}</label>
+      <div class="col-sm-9">
+        <input type="email" class="form-control" ng-model="registrationData.email"
+               placeholder="{{ '邮箱' | translate }}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="col-sm-offset-3 col-sm-9">
+        <p class="text-muted small">{{ '注册信息' | translate }}</p>
+      </div>
+    </div>
+  </form>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" ng-click="submitRegistration()">
+    <span class="fas fa-user-plus"></span> {{ '提交' | translate }}
+  </button>
+  <button class="btn btn-default" ng-click="cancel()">
+    <span class="fas fa-times"></span> {{ '取消' | translate }}
+  </button>
+</div>

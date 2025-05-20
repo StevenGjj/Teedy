@@ -95,6 +95,18 @@ public class User implements Loggable {
     @Column(name = "USE_DISABLEDATE_D")
     private Date disableDate;
 
+    /**
+     * 注册状态，取值：PENDING（待审批）、ACCEPTED（已接受）、REJECTED（已拒绝）
+     */
+    @Column(name = "USE_REGISTRATIONSTATUS_C", length = 20)
+    private String registrationStatus;
+
+    /**
+     * 注册请求时间
+     */
+    @Column(name = "USE_REGISTRATIONDATE_D")
+    private Date registrationDate;
+
     public String getId() {
         return id;
     }
@@ -210,6 +222,24 @@ public class User implements Loggable {
 
     public User setOnboarding(boolean onboarding) {
         this.onboarding = onboarding;
+        return this;
+    }
+
+    public String getRegistrationStatus() {
+        return registrationStatus;
+    }
+
+    public User setRegistrationStatus(String registrationStatus) {
+        this.registrationStatus = registrationStatus;
+        return this;
+    }
+
+    public Date getRegistrationDate() {
+        return registrationDate;
+    }
+
+    public User setRegistrationDate(Date registrationDate) {
+        this.registrationDate = registrationDate;
         return this;
     }
 

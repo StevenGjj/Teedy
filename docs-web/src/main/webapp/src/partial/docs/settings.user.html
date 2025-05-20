@@ -1,32 +1,120 @@
 <h1>
   <span translate="settings.user.title"></span>
-  <a class="btn btn-primary" href="#/settings/user/add">{{ 'settings.user.add_user' | translate }}</a>
+  <!-- 仅管理员显示添加用户按钮 -->
+  <a
+          class="btn btn-primary"
+          href="#/settings/user/add"
+          ng-if="isAdmin"
+  >
+    {{ 'settings.user.add_user' | translate }}
+  </a>
 </h1>
 
-<div class="row">
+<!-- 管理员专属标签页 -->
+<ul class="nav nav-tabs" ng-if="isAdmin">
+  <li
+          role="presentation"
+          ng-class="{ active: tab === 'users' }"
+  >
+    <a href ng-click="setTab('users')">
+      {{ 'settings.user.manage_users' | translate }}
+    </a>
+  </li>
+  <li
+          role="presentation"
+          ng-class="{ active: tab === 'pending' }"
+  >
+    <a href ng-click="setTab('pending')">
+      {{ 'settings.user.pending_approvals' | translate }}
+      <span class="badge" ng-if="pendingCount > 0">
+        {{ pendingCount }}
+      </span>
+    </a>
+  </li>
+</ul>
+
+<!-- 活跃用户管理界面 -->
+<div
+        ng-show="tab === 'users'"
+        class="row"
+>
   <div class="col-md-4 well">
     <table class="table table-hover table-users">
       <thead>
-        <tr>
-          <th>{{ 'settings.user.username' | translate }}</th>
-          <th>{{ 'settings.user.create_date' | translate }}</th>
-        </tr>
+      <tr>
+        <th>{{ 'settings.user.username' | translate }}</th>
+        <th>{{ 'settings.user.create_date' | translate }}</th>
+      </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="user in users | orderBy: 'username'" ng-click="editUser(user)"
-            ng-class="{ active: $stateParams.username == user.username }">
-          <td>
-            <span ng-if="!user.disabled">{{ user.username }}</span>
-            <s ng-if="user.disabled">{{ user.username }}</s>
-            <span class="fas fa-lock" ng-show="user.totp_enabled" uib-tooltip="{{ 'settings.user.totp_enabled' | translate }}"></span>
-          </td>
-          <td>{{ user.create_date | date: dateFormat }}</td>
-        </tr>
+      <tr
+              ng-repeat="user in users | orderBy: 'username'"
+              ng-click="editUser(user)"
+              ng-class="{ active: $stateParams.username == user.username }"
+      >
+        <td>
+          <span ng-if="!user.disabled">{{ user.username }}</span>
+          <s ng-if="user.disabled">{{ user.username }}</s>
+          <span
+                  class="fas fa-lock"
+                  ng-show="user.totp_enabled"
+                  uib-tooltip="{{ 'settings.user.totp_enabled' | translate }}"
+          ></span>
+        </td>
+        <td>{{ user.create_date | date: dateFormat }}</td>
+      </tr>
       </tbody>
     </table>
   </div>
 
   <div class="col-md-8">
     <div ui-view="user"></div>
+  </div>
+</div>
+
+<!-- 待审批用户列表界面 -->
+<div
+        ng-show="tab === 'pending' && isAdmin"
+        class="row"
+>
+  <div class="col-md-12">
+    <div class="alert alert-info" ng-if="pendingUsers.length === 0">
+      <span class="fas fa-info-circle"></span>
+      {{ 'settings.user.no_pending_requests' | translate }}
+    </div>
+
+    <table class="table table-hover" ng-if="pendingUsers.length > 0">
+      <thead>
+      <tr>
+        <th>{{ 'settings.user.username' | translate }}</th>
+        <th>{{ 'settings.user.email' | translate }}</th>
+        <th>{{ 'settings.user.registration_date' | translate }}</th>
+        <th>{{ 'settings.user.actions' | translate }}</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr ng-repeat="user in pendingUsers | orderBy: '-registrationDate'">
+        <td>{{ user.username }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.registrationDate | date: 'yyyy-MM-dd HH:mm' }}</td>
+        <td>
+          <button
+                  class="btn btn-success btn-sm mr-1"
+                  ng-click="approveUser(user.id)"
+          >
+            <span class="fas fa-check"></span>
+            {{ 'settings.user.approve' | translate }}
+          </button>
+          <button
+                  class="btn btn-danger btn-sm"
+                  ng-click="rejectUser(user.id)"
+          >
+            <span class="fas fa-times"></span>
+            {{ 'settings.user.reject' | translate }}
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
   </div>
 </div>

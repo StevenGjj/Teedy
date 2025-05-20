@@ -52,6 +52,189 @@ import java.util.Set;
 @Path("/user")
 public class UserResource extends BaseResource {
     /**
+     * 处理访客注册请求。
+     *
+     * @api {put} /user/register_request 处理访客注册请求
+     * @apiName PutUserRegisterRequest
+     * @apiGroup User
+     * @apiParam {String{3..50}} username 用户名
+     * @apiParam {String{8..50}} password 密码
+     * @apiParam {String{1..100}} email 邮箱
+     * @apiSuccess {String} status 状态OK
+     * @apiError (client) ForbiddenError 访问被拒绝
+     * @apiError (client) ValidationError 验证错误
+     * @apiError (server) PrivateKeyError 生成私钥时出错
+     * @apiError (client) AlreadyExistingUsername 登录名已被使用
+     * @apiError (server) UnknownError 未知服务器错误
+     * @apiPermission none
+     * @apiVersion 1.5.0
+     *
+     * @param username 用户的用户名
+     * @param password 密码
+     * @param email 邮箱
+     * @return 响应
+     */
+    @PUT
+    @Path("register_request")
+    public Response registerRequest(
+            @FormParam("username") String username,
+            @FormParam("password") String password,
+            @FormParam("email") String email) {
+        // 验证输入数据
+        username = ValidationUtil.validateLength(username, "username", 3, 50);
+        ValidationUtil.validateUsername(username, "username");
+        password = ValidationUtil.validateLength(password, "password", 8, 50);
+        email = ValidationUtil.validateLength(email, "email", 1, 100);
+        ValidationUtil.validateEmail(email, "email");
+
+        // 创建用户
+        User user = new User();
+        user.setRoleId(Constants.DEFAULT_USER_ROLE);
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setEmail(email);
+        user.setStorageQuota(0L);
+        user.setOnboarding(true);
+
+        // 创建用户
+        UserDao userDao = new UserDao();
+        try {
+            userDao.create(user, principal.getId());
+        } catch (Exception e) {
+            if ("AlreadyExistingUsername".equals(e.getMessage())) {
+                throw new ClientException("AlreadyExistingUsername", "Login already used", e);
+            } else {
+                throw new ServerException("UnknownError", "Unknown server error", e);
+            }
+        }
+
+        // 总是返回OK
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    /**
+     * 审批用户请求。
+     *
+     * @api {post} /user/approve/{userId} 审批用户请求（接受）
+     * @apiName PostUserApprove
+     * @apiGroup User
+     * @apiParam {String} userId 用户ID
+     * @apiSuccess {String} status 状态OK
+     * @apiError (client) ForbiddenError 访问被拒绝
+     * @apiError (client) UserNotFound 用户未找到
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @param userId 用户ID
+     * @return 响应
+     */
+    @POST
+    @Path("approve/{userId}")
+    public Response approveUser(@PathParam("userId") String userId) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        UserDao userDao = new UserDao();
+        User user = userDao.getById(userId);
+        if (user == null) {
+            throw new ClientException("UserNotFound", "The user does not exist");
+        }
+
+        userDao.approveUser(userId);
+
+        // 总是返回OK
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    /**
+     * 审批用户请求。
+     *
+     * @api {post} /user/reject/{userId} 审批用户请求（拒绝）
+     * @apiName PostUserReject
+     * @apiGroup User
+     * @apiParam {String} userId 用户ID
+     * @apiSuccess {String} status 状态OK
+     * @apiError (client) ForbiddenError 访问被拒绝
+     * @apiError (client) UserNotFound 用户未找到
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @param userId 用户ID
+     * @return 响应
+     */
+    @POST
+    @Path("reject/{userId}")
+    public Response rejectUser(@PathParam("userId") String userId) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        UserDao userDao = new UserDao();
+        User user = userDao.getById(userId);
+        if (user == null) {
+            throw new ClientException("UserNotFound", "The user does not exist");
+        }
+
+        userDao.rejectUser(userId);
+
+        // 总是返回OK
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    /**
+     * 获取待审批的用户列表。
+     *
+     * @api {get} /user/pending 获取待审批用户列表
+     * @apiName GetUserPending
+     * @apiGroup User
+     * @apiSuccess {Object[]} users 用户列表
+     * @apiSuccess {String} users.id 用户ID
+     * @apiSuccess {String} users.username 用户名
+     * @apiSuccess {String} users.email 邮箱
+     * @apiSuccess {Date} users.registrationDate 注册请求时间
+     * @apiError (client) ForbiddenError 访问被拒绝
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @return 响应
+     */
+    @GET
+    @Path("pending")
+    public Response getPendingUsers() {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        // 查询状态为PENDING的用户
+        UserDao userDao = new UserDao();
+        List<User> pendingUsers = userDao.getByRegistrationStatus("PENDING");
+
+        // 构建返回结果
+        JsonArrayBuilder users = Json.createArrayBuilder();
+        for (User user : pendingUsers) {
+            users.add(Json.createObjectBuilder()
+                    .add("id", user.getId())
+                    .add("username", user.getUsername())
+                    .add("email", user.getEmail())
+                    .add("registrationDate", user.getRegistrationDate().getTime()));
+        }
+
+        return Response.ok().entity(Json.createObjectBuilder()
+                .add("users", users)
+                .build()).build();
+    }
+
+    /**
      * Creates a new user.
      *
      * @api {put} /user Register a new user

@@ -30,6 +30,21 @@ angular.module('docs').factory('User', function(Restangular) {
      */
     logout: function() {
       return Restangular.one('user').post('logout', {});
+    },
+
+    // 获取待审批用户列表
+    getPendingUsers: function() {
+      return Restangular.one('user').getList('pending');
+    },
+
+    // 审批用户（接受） - 调用已有的API
+    approveUser: function(userId) {
+      return Restangular.one('user', 'approve').one(userId).post('');
+    },
+
+    // 审批用户（拒绝） - 调用已有的API
+    rejectUser: function(userId) {
+      return Restangular.one('user', 'reject').one(userId).post('');
     }
   }
 });

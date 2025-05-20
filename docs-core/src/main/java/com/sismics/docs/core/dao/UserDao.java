@@ -45,7 +45,7 @@ public class UserDao {
      */
     public User authenticate(String username, String password) {
         EntityManager em = ThreadLocalContext.get().getEntityManager();
-        Query q = em.createQuery("select u from User u where u.username = :username and u.deleteDate is null");
+        Query q = em.createQuery("select u from User u where u.username = :username and u.deleteDate is null and u.registrationStatus = 'ACCEPTED'");
         q.setParameter("username", username);
         try {
             User user = (User) q.getSingleResult();
@@ -85,12 +85,58 @@ public class UserDao {
         user.setPassword(hashPassword(user.getPassword()));
         user.setPrivateKey(EncryptionUtil.generatePrivateKey());
         user.setStorageCurrent(0L);
+        // 初始化新字段
+        user.setRegistrationStatus("PENDING");
+        user.setRegistrationDate(new Date());
         em.persist(user);
         
         // Create audit log
         AuditLogUtil.create(user, AuditLogType.CREATE, userId);
         
         return user.getId();
+    }
+
+    /**
+     * 审批用户通过。
+     *
+     * @param userId 用户ID
+     */
+    public void approveUser(String userId) {
+        EntityManager em = ThreadLocalContext.get().getEntityManager();
+        User user = em.find(User.class, userId);
+        if (user != null) {
+            user.setRegistrationStatus("ACCEPTED");
+            // 可选：设置用户角色（如普通用户）
+            user.setRoleId(Constants.DEFAULT_USER_ROLE);
+            em.merge(user);
+        }
+    }
+
+    /**
+     * 审批用户拒绝。
+     *
+     * @param userId 用户ID
+     */
+    public void rejectUser(String userId) {
+        EntityManager em = ThreadLocalContext.get().getEntityManager();
+        User user = em.find(User.class, userId);
+        if (user != null) {
+            user.setRegistrationStatus("REJECTED");
+            em.merge(user);
+        }
+    }
+
+    /**
+     * 根据注册状态获取用户列表。
+     *
+     * @param status 注册状态
+     * @return 用户列表
+     */
+    public List<User> getByRegistrationStatus(String status) {
+        EntityManager em = ThreadLocalContext.get().getEntityManager();
+        Query q = em.createQuery("select u from User u where u.registrationStatus = :status and u.deleteDate is null");
+        q.setParameter("status", status);
+        return q.getResultList();
     }
     
     /**
